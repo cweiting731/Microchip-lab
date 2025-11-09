@@ -98,13 +98,10 @@ void main(void) {
     while (1) {
         if (PORTBbits.RB0 == 0) {     // RB0 為 0 → 按鈕被按下（假設接地觸發）
             __delay_ms(20);           // 簡單消抖 (debounce)，等抖動結束
-            if (PORTBbits.RB0 == 0) { // 再確認一次真的還是按下
-                running = !running;   // 切換運動狀態：0→1 或 1→0
-
-                // 等待按鈕放開，避免長按觸發多次
-                while (PORTBbits.RB0 == 0);
-                __delay_ms(20);       // 放開後再消抖一次
-            }
+            // 等待按鈕放開，避免長按觸發多次
+            while (PORTBbits.RB0 == 0);
+            running = !running;   // 切換運動狀態：0→1 或 1→0
+            __delay_ms(20);       // 放開後再消抖一次
         }
     }
 }
