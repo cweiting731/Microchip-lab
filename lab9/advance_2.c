@@ -6,7 +6,7 @@
 #pragma config PBADEN = OFF
 #pragma config LVP = OFF
 
-#define THRESHOLD 32   // 建議 5~10，越大越不抖動
+#define THRESHOLD 32
 
 unsigned int preADC = 0;
 
@@ -35,7 +35,7 @@ void __interrupt(high_priority) H_ISR()
         return;
     }
 
-    // ★★★ Threshold 判斷方向（完全不會亂跳） ★★★
+    // Threshold 判斷方向
     if (adcValue > preADC + THRESHOLD) // increasing
     {
         if (isIncreasing == 0) { // 剛切換
