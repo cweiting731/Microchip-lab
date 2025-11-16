@@ -4,7 +4,7 @@ reverse = True # Timer1 有反轉
 PreScaler = 8
 timerMax = 65535
 
-preferTime = 0.04 # 秒
+preferTime = 0.02 # 秒
 
 print("========== Timer1 Configuration =========")
 print(f"OSCCON: {OSCCON}")
