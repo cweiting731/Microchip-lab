@@ -14,10 +14,16 @@ unsigned char basicCounter = 0;
 bool basicInit = 0;
 
 unsigned char advanceTimer2Count = 0; // 10 = 0.1s
-unsigned char advanceTargetCount = 200;
+unsigned char advanceTargetCount = 100;
 unsigned char advanceDigitCount = 0; // 0~15
 
+bool hardInit = 0;
+unsigned char preValue = 0;
+
 void Timer2_Initialize();
+void localADC_Initialize();
+unsigned int localADC_Read();
+unsigned char ADCmap();
 
 void updateLATDdigit(unsigned char digit) {
     LATD = (LATD & 0x0F) | ((digit & 0x0F) << 4);
@@ -29,6 +35,9 @@ void initAll() {
 
     advanceDigitCount = 0;
     advanceTargetCount = 100; // 1s
+
+    hardInit = 0;
+    preValue = 0;
 }
 
 void Mode1()  // Basic mode
@@ -72,6 +81,29 @@ void Mode1()  // Basic mode
 void Mode2() {   // Todo : Mode2 
     return ;
 }
+
+void Mode3() {   // Todo : Mode3 
+    unsigned char transferValue = ADCmap();
+    if (hardInit == 0) {
+        char buf[5];
+        sprintf(buf, "%3d", transferValue);
+        UART_Write_Text(buf);
+        updateLATDdigit(transferValue);
+        hardInit = 1;
+    } else {
+        if (transferValue == preValue) return ;
+        UART_Write('\b');
+        UART_Write('\b');
+        UART_Write('\b');
+        char buf[5];
+        sprintf(buf, "%3d", transferValue);
+        UART_Write_Text(buf);
+        updateLATDdigit(transferValue);
+    }
+    preValue = transferValue;
+    return ;
+}
+
 void main(void) 
 {
     
@@ -102,10 +134,14 @@ void main(void)
                 }
                 else if (currentMode == 2) {
                     PIE1bits.TMR2IE = 0; // Disable Timer2 interrupt
-                    IPR1bits.RCIP = 0; // UART interrupt back to low priority
                     updateLATDdigit(0);
 
                     UART_Write_Text("\r\nAdvance Mode Exit\r\n");
+                    UART_Write_Text("===============\r\n");
+                }
+                else if (currentMode == 3) {
+                    updateLATDdigit(0);
+                    UART_Write_Text("\r\nHard Mode Exit\r\n");
                     UART_Write_Text("===============\r\n");
                 }
                 
@@ -138,7 +174,6 @@ void main(void)
                 ClearBuffer();
             }
             else if(strcmp(str, "advance") == 0){
-                IPR1bits.RCIP = 1; // UART interrupt high priority
                 Timer2_Initialize(); // 初始化 Timer2
 
                 currentMode = 2;
@@ -150,7 +185,14 @@ void main(void)
                 UART_Write_Text(buf);
                 ClearBuffer();
             }
-            else if(strcmp(str, "init" == 0)) {
+            else if (strcmp(str, "hard") == 0) {
+                localADC_Initialize();
+                currentMode = 3;
+                UART_Write_Text("===============\r\n");
+                UART_Write_Text("Hard Mode Enter\r\n");
+                ClearBuffer();
+            }
+            else if(strcmp(str, "init") == 0) {
                 initAll();
                 UART_Write_Text("\r\nValue Initialized\r\n");
                 UART_Write_Text("===============\r\n");
@@ -163,6 +205,7 @@ void main(void)
         // 持續跑當前模式
         if(currentMode == 1) Mode1();
         else if(currentMode == 2) Mode2();
+        else if (currentMode == 3) Mode3();
     }
 
     return;
@@ -190,19 +233,30 @@ void __interrupt(low_priority)  Lo_ISR(void)
             }
         }
     }
-    else {
-        if(RCIF)
-        {
-            if(RCSTAbits.OERR)
-            {
-                CREN = 0;
-                Nop();
-                CREN = 1;
-            }
-            
-            MyusartRead();
-        }
-    }
+    // else if (currentMode == 3) {
+    //     // handle ADC interrupt
+    //     if (PIR1bits.ADIF) {
+
+    //         unsigned char transferValue = ADCmap();
+    //         updateLATDdigit(transferValue);
+    //         if (hardInit == 0) {
+    //             char buf[5];
+    //             sprintf(buf, "%3d", transferValue);
+    //             UART_Write_Text(buf);
+    //             hardInit = 1;
+    //         } else {
+    //             UART_Write('\b');
+    //             UART_Write('\b');
+    //             UART_Write('\b');
+    //             char buf[5];
+    //             sprintf(buf, "%3d", transferValue);
+    //             UART_Write_Text(buf);
+    //         }
+
+    //         PIR1bits.ADIF = 0; // Clear ADC interrupt flag
+    //         ADCON0bits.GO = 1;      // start next conversion
+    //     }
+    // }
     
    // process other interrupt sources here, if required
     return;
@@ -210,18 +264,16 @@ void __interrupt(low_priority)  Lo_ISR(void)
 
 void __interrupt(high_priority) Hi_ISR(void)
 {
-    if (currentMode == 2) {
-        if(RCIF)
+    if(RCIF)
+    {
+        if(RCSTAbits.OERR)
         {
-            if(RCSTAbits.OERR)
-            {
-                CREN = 0;
-                Nop();
-                CREN = 1;
-            }
-            
-            MyusartRead();
+            CREN = 0;
+            Nop();
+            CREN = 1;
         }
+        
+        MyusartRead();
     }
 }
 
@@ -253,4 +305,49 @@ void Timer2_Initialize()
 
     // Turn on Timer2
     T2CONbits.TMR2ON = 1;
+}
+
+void localADC_Initialize() {
+    ADCON1bits.VCFG0 = 0;
+    ADCON1bits.VCFG1 = 0;
+    TRISAbits.RA0 = 1;       // AN0 input
+    ADCON1bits.PCFG = 0b1110; // only AN0 analog
+    ADCON0bits.CHS  = 0b0000; // channel 0 = AN0
+
+    ADCON2bits.ADCS = 0b100; // Tosc * 4 = 0.25 µs * 4 = 1 µs = Tad (> 0.7 µs)
+    ADCON2bits.ACQT = 0b010; // 4 Tad, Tacq = 4 µs (> 2.4 µs)
+    ADCON2bits.ADFM = 1;      // right justified (建議用右對齊)
+    ADCON0bits.ADON = 1;      // turn on ADC
+
+    // PIE1bits.ADIE = 1; // Enable ADC interrupt
+    // PIR1bits.ADIF = 0; // Clear ADC interrupt flag
+
+    // INTCONbits.PEIE = 1; // Enable peripheral interrupt
+    // INTCONbits.GIE = 1; // Enable global interrupt
+
+    // ADCON0bits.GO = 1;      // start ADC conversion
+}
+
+unsigned int localADC_Read() {
+    __delay_us(5);             // acquisition time
+    ADCON0bits.GO = 1;
+    while(ADCON0bits.GO);      // wait completion
+    return ((ADRESH << 8) | ADRESL);
+}
+
+unsigned char ADCmap() {
+    unsigned int adcValue = localADC_Read();  // 0~1023
+    
+    if (adcValue < 85) return 4;
+    else if (adcValue < 170) return 5;
+    else if (adcValue < 256) return 6;
+    else if (adcValue < 341) return 7;
+    else if (adcValue < 426) return 8;
+    else if (adcValue < 512) return 9;
+    else if (adcValue < 597) return 10;
+    else if (adcValue < 682) return 11;
+    else if (adcValue < 767) return 12;
+    else if (adcValue < 852) return 13;
+    else if (adcValue < 938) return 14;
+    else return 15;
 }

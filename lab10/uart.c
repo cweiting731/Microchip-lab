@@ -38,7 +38,7 @@ void UART_Initialize() {
     IPR1bits.TXIP = 0;
 
     PIE1bits.RCIE = 1;              
-    IPR1bits.RCIP = 0;              
+    IPR1bits.RCIP = 1; // High priority             
 }
 
 void UART_Write(unsigned char data)  // Output on Terminal
