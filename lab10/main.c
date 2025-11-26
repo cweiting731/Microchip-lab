@@ -19,6 +19,7 @@ unsigned char advanceDigitCount = 0; // 0~15
 
 bool hardInit = 0;
 unsigned char preValue = 0;
+unsigned int preADCvalue = 0;
 
 void Timer2_Initialize();
 void localADC_Initialize();
@@ -84,6 +85,8 @@ void Mode2() {   // Todo : Mode2
 
 void Mode3() {   // Todo : Mode3 
     unsigned char transferValue = ADCmap();
+    if (transferValue == 0) return ;
+
     if (hardInit == 0) {
         char buf[5];
         sprintf(buf, "%3d", transferValue);
@@ -141,12 +144,12 @@ void main(void)
                 }
                 else if (currentMode == 3) {
                     updateLATDdigit(0);
+                    hardInit = 0; // reset hard mode init
                     UART_Write_Text("\r\nHard Mode Exit\r\n");
                     UART_Write_Text("===============\r\n");
                 }
                 
                 currentMode = 0;
-                ClearBuffer();
                 continue;
             }
 
@@ -171,7 +174,6 @@ void main(void)
                 basicInit = 0;      // reset Mode1 display
                 UART_Write_Text("===============\r\n");
                 UART_Write_Text("Basic Mode Enter\r\n\r\n");
-                ClearBuffer();
             }
             else if(strcmp(str, "advance") == 0){
                 Timer2_Initialize(); // 初始化 Timer2
@@ -183,21 +185,19 @@ void main(void)
                 char buf[30];
                 sprintf(buf, "Switch Delay: %.1f\r\n", (float)advanceTargetCount * 0.01);
                 UART_Write_Text(buf);
-                ClearBuffer();
             }
             else if (strcmp(str, "hard") == 0) {
                 localADC_Initialize();
                 currentMode = 3;
                 UART_Write_Text("===============\r\n");
                 UART_Write_Text("Hard Mode Enter\r\n");
-                ClearBuffer();
             }
             else if(strcmp(str, "init") == 0) {
                 initAll();
                 UART_Write_Text("\r\nValue Initialized\r\n");
                 UART_Write_Text("===============\r\n");
-                ClearBuffer();
             }
+            ClearBuffer();
         }
 
         
@@ -337,6 +337,16 @@ unsigned int localADC_Read() {
 
 unsigned char ADCmap() {
     unsigned int adcValue = localADC_Read();  // 0~1023
+    if (hardInit == 0) {
+        preADCvalue = adcValue;
+    }
+    else {
+        if (abs((int)adcValue - (int)preADCvalue) < 4) {
+            return 0;
+        } else {
+            preADCvalue = adcValue;
+        }
+    }
     
     if (adcValue < 85) return 4;
     else if (adcValue < 170) return 5;
