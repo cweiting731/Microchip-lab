@@ -22,8 +22,6 @@ bool hardInit = 0;
 unsigned char preValue = 0;
 unsigned int preADCvalue = 0;
 
-void localADC_Initialize();
-unsigned int localADC_Read();
 unsigned char ADCmap();
 
 void updateLATDdigit(unsigned char digit) {
@@ -107,13 +105,13 @@ void Mode3() {   // Todo : Mode3
     return ;
 }
 
+
 void Mode4() {
-    
+
 }
 
 void commandHandler() {
     strcpy(str, GetString());
-
     // 檢查str長度 // 結束信號
     if (strlen(str) == 0) {
         if (currentMode == 0) { // 處理沒有mode還按enter的情況
@@ -127,7 +125,7 @@ void commandHandler() {
             UART_Write_Text("===============\r\n");
         }
         else if (currentMode == 2) {
-            Timer2_stop();
+            Timer0_stop();
             updateLATDdigit(0);
 
             UART_Write_Text("\r\nAdvance Mode Exit\r\n");
@@ -160,13 +158,13 @@ void commandHandler() {
         }
     }
 
-    if(strcmp(str, "basic") == 0){
+    if(strncmp(str, "basic", 5) == 0){
         currentMode = 1;
         basicInit = 0;      // reset Mode1 display
         UART_Write_Text("===============\r\n");
         UART_Write_Text("Basic Mode Enter\r\n\r\n");
     }
-    else if(strcmp(str, "advance") == 0){
+    else if(strncmp(str, "advance", 7) == 0){
         Timer0_Initialize(64285, 8, 0); // 初始化 Timer0
 
         currentMode = 2;
@@ -177,8 +175,8 @@ void commandHandler() {
         sprintf(buf, "Switch Delay: %.1f\r\n", (float)advanceTargetCount * 0.01);
         UART_Write_Text(buf);
     }
-    else if (strcmp(str, "hard") == 0) {
-        localADC_Initialize();
+    else if (strncmp(str, "hard", 4) == 0) {
+        // ADC_Initialize(0b1110, 0, 0, 0b010, 0b100, 1); // AN0 analog, Vref=Vdd/Vss, 4Tad, Fosc/4, right justified
         currentMode = 3;
         UART_Write_Text("===============\r\n");
         UART_Write_Text("Hard Mode Enter\r\n");
@@ -262,46 +260,8 @@ void __interrupt(high_priority) Hi_ISR(void)
     }
 }
 
-void localADC_Initialize() {
-    ADCON1bits.VCFG0 = 0;
-    ADCON1bits.VCFG1 = 0;
-    TRISAbits.RA0 = 1;       // AN0 input
-    ADCON1bits.PCFG = 0b1110; // only AN0 analog
-    ADCON0bits.CHS  = 0b0000; // channel 0 = AN0
-
-    ADCON2bits.ADCS = 0b100; // Tosc * 4 = 0.25 µs * 4 = 1 µs = Tad (> 0.7 µs)
-    ADCON2bits.ACQT = 0b010; // 4 Tad, Tacq = 4 µs (> 2.4 µs)
-    ADCON2bits.ADFM = 1;      // right justified (建議用右對齊)
-    ADCON0bits.ADON = 1;      // turn on ADC
-
-    // PIE1bits.ADIE = 1; // Enable ADC interrupt
-    // PIR1bits.ADIF = 0; // Clear ADC interrupt flag
-
-    // INTCONbits.PEIE = 1; // Enable peripheral interrupt
-    // INTCONbits.GIE = 1; // Enable global interrupt
-
-    // ADCON0bits.GO = 1;      // start ADC conversion
-}
-
-unsigned int localADC_Read() {
-    __delay_us(5);             // acquisition time
-    ADCON0bits.GO = 1;
-    while(ADCON0bits.GO);      // wait completion
-    return ((ADRESH << 8) | ADRESL);
-}
-
 unsigned char ADCmap() {
-    unsigned int adcValue = localADC_Read();  // 0~1023
-    if (hardInit == 0) {
-        preADCvalue = adcValue;
-    }
-    else {
-        if (abs((int)adcValue - (int)preADCvalue) < 4) {
-            return 0;
-        } else {
-            preADCvalue = adcValue;
-        }
-    }
+    unsigned int adcValue = ADC_Read(0);  // 0~1023
     
     if (adcValue < 85) return 4;
     else if (adcValue < 170) return 5;

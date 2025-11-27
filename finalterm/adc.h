@@ -28,11 +28,59 @@
 
 // This is a guard condition so that contents of this file are not included
 // more than once.  
-#ifndef _ADC_H
-#define	_ADC_H
+#ifndef ADC_H
+#define ADC_H
 
-void ADC_Initialize() ;
-int ADC_Read(int channel);
+#include <xc.h>
+#include <stdint.h>
+
+#define THRESHOLD 4
+
+/**
+ * @brief 初始化 ADC 模組
+ *
+ * @param analogMask PCFG 設定（哪些腳為 analog）
+ *        例：0b1110 → AN0 analog, AN1~AN12 digital
+ *
+ * @param vrefPlus 0=Vdd, 1=External Vref+
+ * @param vrefMinus 0=Vss, 1=External Vref-
+ *
+ * @param acqt Acquisition Time (0–7)
+ *        000 = 0TAD, 
+ *        001 = 2TAD, 
+ *        010 = 4TAD,
+ *        011 = 6TAD,
+ *        100 = 8TAD,
+ *        101 = 12TAD,
+ *        110 = 16TAD,
+ *        111 = 20TAD
+ *
+ * @param adcs ADC Clock Select (0–7)
+ *        111 = FRC (internal RC oscillator)
+ *        110 = Fosc/64
+ *        101 = Fosc/16
+ *        100 = Fosc/4
+ *        011 = FRC (internal RC oscillator)
+ *        010 = Fosc/32
+ *        001 = Fosc/8
+ *        000 = Fosc/2
+ *
+ * @param rightJustify 1=右對齊, 0=左對齊
+ */
+void ADC_Initialize(uint8_t analogMask,
+                    uint8_t vrefPlus,
+                    uint8_t vrefMinus,
+                    uint8_t acqt,
+                    uint8_t adcs,
+                    uint8_t rightJustify);
+
+
+/**
+ * @brief 讀取 ADC 數值
+ *
+ * @param channel 要讀取的 AN 通道 (0~12)
+ * @return uint16_t 10-bit ADC 數值 (0~1023)
+ */
+uint16_t ADC_Read(uint8_t channel);
 
 #endif
-
