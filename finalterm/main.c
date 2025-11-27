@@ -1,8 +1,9 @@
-#include "setting_hardaware/setting.h"
+#include "setting.h"
 #include <stdlib.h>
 #include "stdio.h"
 #include "string.h"
 #include <stdbool.h>
+#include "timers.h"
 // using namespace std;
 
 #define _XTAL_FREQ 4000000UL
@@ -21,7 +22,6 @@ bool hardInit = 0;
 unsigned char preValue = 0;
 unsigned int preADCvalue = 0;
 
-void Timer2_Initialize();
 void localADC_Initialize();
 unsigned int localADC_Read();
 unsigned char ADCmap();
@@ -107,6 +107,90 @@ void Mode3() {   // Todo : Mode3
     return ;
 }
 
+void Mode4() {
+    
+}
+
+void commandHandler() {
+    strcpy(str, GetString());
+
+    // 檢查str長度 // 結束信號
+    if (strlen(str) == 0) {
+        if (currentMode == 0) { // 處理沒有mode還按enter的情況
+            updateLATDdigit(0);
+            ClearBuffer();
+            return;
+        }
+        else if (currentMode == 1) {
+            updateLATDdigit(0);
+            UART_Write_Text("\r\nBasic Mode Exit\r\n");
+            UART_Write_Text("===============\r\n");
+        }
+        else if (currentMode == 2) {
+            Timer2_stop();
+            updateLATDdigit(0);
+
+            UART_Write_Text("\r\nAdvance Mode Exit\r\n");
+            UART_Write_Text("===============\r\n");
+        }
+        else if (currentMode == 3) {
+            updateLATDdigit(0);
+            hardInit = 0; // reset hard mode init
+            UART_Write_Text("\r\nHard Mode Exit\r\n");
+            UART_Write_Text("===============\r\n");
+        }
+        
+        currentMode = 0;
+        return;
+    }
+
+    // 攔截advance的浮點數輸入
+    // 檢查當前mode是2 且 輸入是浮點數
+    if (currentMode == 2) {
+        char *endptr;
+        float val = strtof(str, &endptr);
+        if (endptr != str && *endptr == '\0') {
+            // 成功轉換為浮點數
+            char buf[30];
+            advanceTargetCount = (unsigned char)(val * 100); // 0.1s為單位
+            sprintf(buf, "Switch Delay: %.1f\r\n", val);
+            UART_Write_Text(buf);
+            ClearBuffer();
+            return;
+        }
+    }
+
+    if(strcmp(str, "basic") == 0){
+        currentMode = 1;
+        basicInit = 0;      // reset Mode1 display
+        UART_Write_Text("===============\r\n");
+        UART_Write_Text("Basic Mode Enter\r\n\r\n");
+    }
+    else if(strcmp(str, "advance") == 0){
+        Timer0_Initialize(64285, 8, 0); // 初始化 Timer0
+
+        currentMode = 2;
+        UART_Write_Text("===============\r\n");
+        UART_Write_Text("Advance Mode Enter\r\n");
+        // 顯示現在delay時間
+        char buf[30];
+        sprintf(buf, "Switch Delay: %.1f\r\n", (float)advanceTargetCount * 0.01);
+        UART_Write_Text(buf);
+    }
+    else if (strcmp(str, "hard") == 0) {
+        localADC_Initialize();
+        currentMode = 3;
+        UART_Write_Text("===============\r\n");
+        UART_Write_Text("Hard Mode Enter\r\n");
+    }
+    else if(strcmp(str, "init") == 0) {
+        initAll();
+        UART_Write_Text("\r\nValue Initialized\r\n");
+        UART_Write_Text("===============\r\n");
+    }
+    ClearBuffer();
+}
+
 void main(void) 
 {
     
@@ -120,87 +204,8 @@ void main(void)
     while(1) {
         if (IsCommandReady()) {
             ClearCommandReady();
-
-            strcpy(str, GetString());
-
-            // 檢查str長度 // 結束信號
-            if (strlen(str) == 0) {
-                if (currentMode == 0) { // 處理沒有mode還按enter的情況
-                    updateLATDdigit(0);
-                    ClearBuffer();
-                    continue;
-                }
-                else if (currentMode == 1) {
-                    updateLATDdigit(0);
-                    UART_Write_Text("\r\nBasic Mode Exit\r\n");
-                    UART_Write_Text("===============\r\n");
-                }
-                else if (currentMode == 2) {
-                    PIE1bits.TMR2IE = 0; // Disable Timer2 interrupt
-                    updateLATDdigit(0);
-
-                    UART_Write_Text("\r\nAdvance Mode Exit\r\n");
-                    UART_Write_Text("===============\r\n");
-                }
-                else if (currentMode == 3) {
-                    updateLATDdigit(0);
-                    hardInit = 0; // reset hard mode init
-                    UART_Write_Text("\r\nHard Mode Exit\r\n");
-                    UART_Write_Text("===============\r\n");
-                }
-                
-                currentMode = 0;
-                continue;
-            }
-
-            // 攔截advance的浮點數輸入
-            // 檢查當前mode是2 且 輸入是浮點數
-            if (currentMode == 2) {
-                char *endptr;
-                float val = strtof(str, &endptr);
-                if (endptr != str && *endptr == '\0') {
-                    // 成功轉換為浮點數
-                    char buf[30];
-                    advanceTargetCount = (unsigned char)(val * 100); // 0.1s為單位
-                    sprintf(buf, "Switch Delay: %.1f\r\n", val);
-                    UART_Write_Text(buf);
-                    ClearBuffer();
-                    continue;
-                }
-            }
-
-            if(strcmp(str, "basic") == 0){
-                currentMode = 1;
-                basicInit = 0;      // reset Mode1 display
-                UART_Write_Text("===============\r\n");
-                UART_Write_Text("Basic Mode Enter\r\n\r\n");
-            }
-            else if(strcmp(str, "advance") == 0){
-                Timer2_Initialize(); // 初始化 Timer2
-
-                currentMode = 2;
-                UART_Write_Text("===============\r\n");
-                UART_Write_Text("Advance Mode Enter\r\n");
-                // 顯示現在delay時間
-                char buf[30];
-                sprintf(buf, "Switch Delay: %.1f\r\n", (float)advanceTargetCount * 0.01);
-                UART_Write_Text(buf);
-            }
-            else if (strcmp(str, "hard") == 0) {
-                localADC_Initialize();
-                currentMode = 3;
-                UART_Write_Text("===============\r\n");
-                UART_Write_Text("Hard Mode Enter\r\n");
-            }
-            else if(strcmp(str, "init") == 0) {
-                initAll();
-                UART_Write_Text("\r\nValue Initialized\r\n");
-                UART_Write_Text("===============\r\n");
-            }
-            ClearBuffer();
+            commandHandler();
         }
-
-        
 
         // 持續跑當前模式
         if(currentMode == 1) Mode1();
@@ -215,8 +220,13 @@ void main(void)
 void __interrupt(low_priority)  Lo_ISR(void)
 {
     if (currentMode == 2) {
-        if (PIR1bits.TMR2IF) {
-            PIR1bits.TMR2IF = 0; // Clear Timer2 interrupt flag
+        if (Timer0_isInterruptFlagSet()) {
+            Timer0_clearInterruptFlag(); // Clear Timer0 interrupt flag
+            Timer0_reload(64285); // Reload Timer0 preload value
+            // 印出advanceTimer2Count
+            // char buf[20];
+            // sprintf(buf, "%3d %d %d\r\n", advanceTimer2Count, TMR1H, TMR1L);
+            // UART_Write_Text(buf);
 
             advanceTimer2Count++;
             if (advanceTimer2Count >= advanceTargetCount) {
@@ -233,32 +243,7 @@ void __interrupt(low_priority)  Lo_ISR(void)
             }
         }
     }
-    // else if (currentMode == 3) {
-    //     // handle ADC interrupt
-    //     if (PIR1bits.ADIF) {
 
-    //         unsigned char transferValue = ADCmap();
-    //         updateLATDdigit(transferValue);
-    //         if (hardInit == 0) {
-    //             char buf[5];
-    //             sprintf(buf, "%3d", transferValue);
-    //             UART_Write_Text(buf);
-    //             hardInit = 1;
-    //         } else {
-    //             UART_Write('\b');
-    //             UART_Write('\b');
-    //             UART_Write('\b');
-    //             char buf[5];
-    //             sprintf(buf, "%3d", transferValue);
-    //             UART_Write_Text(buf);
-    //         }
-
-    //         PIR1bits.ADIF = 0; // Clear ADC interrupt flag
-    //         ADCON0bits.GO = 1;      // start next conversion
-    //     }
-    // }
-    
-   // process other interrupt sources here, if required
     return;
 }
 
@@ -275,36 +260,6 @@ void __interrupt(high_priority) Hi_ISR(void)
         
         MyusartRead();
     }
-}
-
-void Timer2_Initialize()
-{
-    // Timer2 off first
-    T2CONbits.TMR2ON = 0;
-
-    // Prescaler = 1:16
-    T2CONbits.T2CKPS = 0b11;
-
-    // Postscaler = 1:16
-    T2CONbits.T2OUTPS = 0b1111;
-
-    // 10ms period (0.01s)
-    PR2 = 38;
-
-    // Clear counter
-    TMR2 = 0;
-
-    // Clear interrupt flag
-    PIR1bits.TMR2IF = 0;
-
-    // Enable Timer2 interrupt
-    PIE1bits.TMR2IE = 1;
-
-    // Timer2 interrupt = LOW PRIORITY (題目要求 UART > Timer2)
-    IPR1bits.TMR2IP = 0;
-
-    // Turn on Timer2
-    T2CONbits.TMR2ON = 1;
 }
 
 void localADC_Initialize() {
