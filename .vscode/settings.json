@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "stdbool.h": "c",
-        "setting.h": "c"
+        "setting.h": "c",
+        "iosfwd": "c",
+        "xlocbuf": "c"
     }
 }
