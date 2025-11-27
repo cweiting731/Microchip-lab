@@ -66,7 +66,7 @@ void SYSTEM_Initialize(void)
 //    TMR0_Initialize();
     INTERRUPT_Initialize();
     UART_Initialize();
-    CCP1_Initialize();
+    // CCP1_Initialize();
     ADC_Initialize(0b1110, 0, 0, 0b010, 0b100, 1); // AN0 analog, Vref=Vdd/Vss, 4Tad, Fosc/4, right justified
 }
 

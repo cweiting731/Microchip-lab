@@ -1,12 +1,12 @@
 #include "setting.h"
+#include "config.h"
 #include <stdlib.h>
 #include "stdio.h"
 #include "string.h"
 #include <stdbool.h>
 #include "timers.h"
+#include <stdint.h>
 // using namespace std;
-
-#define _XTAL_FREQ 4000000UL
 
 char str[20];
 unsigned char currentMode = 0; // 0 for none, 1 for mode1, 2 for mode2
@@ -20,7 +20,6 @@ unsigned char advanceDigitCount = 0; // 0~15
 
 bool hardInit = 0;
 unsigned char preValue = 0;
-unsigned int preADCvalue = 0;
 
 unsigned char ADCmap();
 
@@ -105,9 +104,49 @@ void Mode3() {   // Todo : Mode3
     return ;
 }
 
-
+bool servoInit = 0;
+uint16_t preADCvalue = 0;
+unsigned char servoAngle = 0;
 void Mode4() {
+    uint16_t adcValue = ADC_Read(0); // 讀取 AN0 的 ADC 值
+    if (servoInit == 0) {
+        char buf[20];
+        sprintf(buf, "%4d", adcValue);
+        UART_Write_Text(buf);
+        servoInit = 1;
+        preADCvalue = adcValue;
+        uint16_t angle = (uint32_t)adcValue * 180 / 1023;
+        Servo_WriteAngle(angle);
+    } else {
+        if (adcValue == preADCvalue) return ;
+        UART_Write('\b');
+        UART_Write('\b');
+        UART_Write('\b');
+        UART_Write('\b');
+        char buf[20];
+        sprintf(buf, "%4d", adcValue);
+        UART_Write_Text(buf);
+        preADCvalue = adcValue;
+        // // 將 ADC 值映射到 0~180 度
+        uint16_t angle = (uint32_t)adcValue * 180 / 1023;
+        Servo_WriteAngle(angle);
+    }
+    // uint16_t angle = (uint32_t)preADCvalue * 180 / 1023;
+    // Servo_WriteAngle(angle);
+    // __delay_ms(100);
+    return ;
 
+    // if (PORTBbits.RB0 == 0)   // 按下（假設拉高，按下=0）
+    // {
+    //     __delay_ms(20);       // debounce
+    //     // 等待按鍵放開，避免一次按多次
+    //     while (PORTBbits.RB0 == 0);
+        
+    //     servoAngle = (servoAngle + 15) % 180;
+    //     Servo_WriteAngle(servoAngle);
+
+    //     __delay_ms(20);
+    // }
 }
 
 void commandHandler() {
@@ -135,6 +174,12 @@ void commandHandler() {
             updateLATDdigit(0);
             hardInit = 0; // reset hard mode init
             UART_Write_Text("\r\nHard Mode Exit\r\n");
+            UART_Write_Text("===============\r\n");
+        }
+        else if (currentMode == 4) {
+            updateLATDdigit(0);
+            servoInit = 0; // reset servo mode init
+            UART_Write_Text("\r\nServo Mode Exit\r\n");
             UART_Write_Text("===============\r\n");
         }
         
@@ -181,6 +226,13 @@ void commandHandler() {
         UART_Write_Text("===============\r\n");
         UART_Write_Text("Hard Mode Enter\r\n");
     }
+    else if (strncmp(str, "servo", 5) == 0) {
+        // ADC_Initialize(0b1110, 0, 0, 0b010, 0b100, 1); // AN0 analog, Vref=Vdd/Vss, 4Tad, Fosc/4, right justified
+        CCP1_PWM_Initialize(50, 16); // 50Hz for servo
+        currentMode = 4;
+        UART_Write_Text("===============\r\n");
+        UART_Write_Text("Servo Mode Enter\r\n");
+    }
     else if(strcmp(str, "init") == 0) {
         initAll();
         UART_Write_Text("\r\nValue Initialized\r\n");
@@ -209,6 +261,7 @@ void main(void)
         if(currentMode == 1) Mode1();
         else if(currentMode == 2) Mode2();
         else if (currentMode == 3) Mode3();
+        else if (currentMode == 4) Mode4();
     }
 
     return;
