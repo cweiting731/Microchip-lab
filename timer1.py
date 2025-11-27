@@ -1,10 +1,10 @@
 # 250kHz
-OSCCON = 250000 # 時脈
+OSCCON = 4000000 # 時脈
 reverse = True # Timer1 有反轉
 PreScaler = 8
 timerMax = 65535
 
-preferTime = 0.02 # 秒
+preferTime = 0.01 # 秒
 
 print("========== Timer1 Configuration =========")
 print(f"OSCCON: {OSCCON}")

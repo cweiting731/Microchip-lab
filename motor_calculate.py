@@ -1,15 +1,15 @@
 # 計算伺服馬達所需設置參數的模組
 # config
-Fosc = 125000 # 時脈頻率 (Hz)
+Fosc = 4000000 # 時脈頻率 (Hz)
 Tosc = 1 / Fosc * 1_000_000 # 時脈週期 (us)
-TMR2_prescale = 4 # TMR2 預分頻值
+TMR2_prescale = 16 # TMR2 預分頻值
 
 # 500 ~ 2400 us 對應 -90 ~ +90 度
 angle = float(input("請輸入伺服馬達角度 (-90 到 90 度): "))
 if angle < -90 or angle > 90:
     print("角度超出範圍")
 else:
-    duty_cycle = (angle + 90) * (2400 - 500) / 180 + 500
+    duty_cycle = (angle + 90) * (2450 - 450) / 180 + 450
     print("所需脈衝寬度: {:.2f} us".format(duty_cycle))
 
     # 計算 TMR2 需要的計數值
