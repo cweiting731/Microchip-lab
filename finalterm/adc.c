@@ -1,6 +1,7 @@
 #include <xc.h>
 #include <stdint.h>
 #include "adc.h"
+#include <stdbool.h>
 
 uint16_t preAdcValue = 0;
 
@@ -29,6 +30,42 @@ void ADC_Initialize(uint8_t analogMask,
 
     // ===== Enable ADC module =====
     ADCON0bits.ADON = 1;
+}
+
+void ADC_enableInterrupt(void) {
+    PIE1bits.ADIE = 1;  // Enable ADC interrupt
+    PIR1bits.ADIF = 0;  // Clear ADC interrupt flag
+    INTCONbits.PEIE = 1; // Enable peripheral interrupts
+    INTCONbits.GIE = 1;  // Enable global interrupts
+}
+
+void ADC_disableInterrupt(void) {
+    PIE1bits.ADIE = 0;  // Disable ADC interrupt
+    PIR1bits.ADIF = 0;  // Clear ADC interrupt flag
+}
+
+bool ADC_isInterruptFlagSet(void) {
+    return PIR1bits.ADIF;
+}
+
+void ADC_clearInterruptFlag(void) {
+    PIR1bits.ADIF = 0;
+}
+
+void ADC_startInterruptRead(uint8_t channel) {
+    // 防止 channel overflow（PIC18F4520 最多到 AN12）
+    channel &= 0b1111;
+
+    // ===== select channel =====
+    ADCON0bits.CHS = channel;
+
+    // __delay_us(5);         // acquisition delay (取樣時間)
+
+    ADCON0bits.GO = 1;     // start conversion
+}
+
+void ADC_stopInterruptRead(void) {
+    ADCON0bits.GO = 0;     // stop conversion
 }
 
 uint16_t ADC_Read(uint8_t channel)

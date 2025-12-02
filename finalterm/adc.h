@@ -33,6 +33,7 @@
 
 #include <xc.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define THRESHOLD 4
 
@@ -74,6 +75,12 @@ void ADC_Initialize(uint8_t analogMask,
                     uint8_t adcs,
                     uint8_t rightJustify);
 
+void ADC_enableInterrupt(void);
+void ADC_disableInterrupt(void);
+bool ADC_isInterruptFlagSet(void);
+void ADC_clearInterruptFlag(void);
+void ADC_startInterruptRead(uint8_t channel);
+void ADC_stopInterruptRead(void);
 
 /**
  * @brief 讀取 ADC 數值

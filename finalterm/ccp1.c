@@ -75,7 +75,7 @@ void CCP1_SetDuty(uint16_t duty)
  *   - 180° = 2450 µs
  *   - PWM Period = 20000 µs (50Hz)
  */
-void Servo_WriteAngle(uint16_t angle)
+void Servo_WriteAngle(uint16_t angle, unsigned char prescaler)
 {
     if (angle > 180)  angle = 180;
     if (angle < 0) angle = 0;
@@ -90,7 +90,7 @@ void Servo_WriteAngle(uint16_t angle)
     // duty = pulse_us / (Tosc * prescale)
     //
     float Tosc = (1.0f / (float)_XTAL_FREQ) * 1000000.0f; // µs
-    float rawCCPR = pulse_us / (Tosc * 16.0f); // 16 = TMR2 prescale
+    float rawCCPR = pulse_us / (Tosc * (float)prescaler); // 16 = TMR2 prescale
 
     uint16_t duty = (uint16_t)(rawCCPR);  // 轉成整數
 

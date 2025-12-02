@@ -116,7 +116,7 @@ void Mode4() {
         servoInit = 1;
         preADCvalue = adcValue;
         uint16_t angle = (uint32_t)adcValue * 180 / 1023;
-        Servo_WriteAngle(angle);
+        Servo_WriteAngle(angle, 16);
     } else {
         if (adcValue == preADCvalue) return ;
         UART_Write('\b');
@@ -129,7 +129,7 @@ void Mode4() {
         preADCvalue = adcValue;
         // // 將 ADC 值映射到 0~180 度
         uint16_t angle = (uint32_t)adcValue * 180 / 1023;
-        Servo_WriteAngle(angle);
+        Servo_WriteAngle(angle, 16);
     }
     // uint16_t angle = (uint32_t)preADCvalue * 180 / 1023;
     // Servo_WriteAngle(angle);

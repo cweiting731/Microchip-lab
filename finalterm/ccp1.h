@@ -21,7 +21,7 @@ void CCP1_PWM_Initialize(uint32_t frequency, uint8_t prescale);
  */
 void CCP1_SetDuty(uint16_t duty);
 
-void Servo_WriteAngle(uint16_t angle);
+void Servo_WriteAngle(uint16_t angle, unsigned char prescaler);
 
 // void CCP1_Initialize();
 #endif	
