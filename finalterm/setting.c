@@ -67,14 +67,24 @@ void SYSTEM_Initialize(void)
     INTERRUPT_Initialize();
     UART_Initialize();
     // CCP1_Initialize();
-    ADC_Initialize(0b1110, 0, 0, 0b010, 0b100, 1); // AN0 analog, Vref=Vdd/Vss, 4Tad, Fosc/4, right justified
+    // ADC_Initialize(0b1110, 0, 0, 0b010, 0b100, 1); // AN0 analog, Vref=Vdd/Vss, 4Tad, Fosc/4, right justified
 }
 
 void OSCILLATOR_Initialize(void)
 {
-    IRCF2 = 1; // default setting 4M Hz
-    IRCF1 = 1;
-    IRCF0 = 0;
+    // IRCF2 = 1; // default setting 4M Hz
+    // IRCF1 = 1;
+    // IRCF0 = 0;
+    OSCCONbits.IRCF = 0b110; // 4 MHz
+
+    // 111 = 8 MHz (INTOSC drives clock directly) 
+    // 110 = 4 MHz 
+    // 101 = 2 MHz 
+    // 100 = 1 MHz(3) 
+    // 011 = 500 kHz 
+    // 010 = 250 kHz 
+    // 001 = 125 kHz 
+    // 000 = 31 kHz (from either INTOSC/256 or INTRC directly)
 
     // RCON = 0x0000;
 }
