@@ -21,9 +21,9 @@ void UART_Initialize() {
     
     //  Setting baud rate
     TXSTAbits.SYNC = 0;           
+    TXSTAbits.BRGH = 1;
     BAUDCONbits.BRG16 = 0;          
-    TXSTAbits.BRGH = 0;
-    SPBRG = 51;      
+    SPBRG = 25;      
     
    //   Serial enable
     RCSTAbits.SPEN = 1;
