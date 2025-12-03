@@ -46,7 +46,7 @@
  * @param vrefPlus 0=Vdd, 1=External Vref+
  * @param vrefMinus 0=Vss, 1=External Vref-
  *
- * @param acqt Acquisition Time (0–7)
+ * @param acqt Acquisition Time (0–7) (> 2.4 µs)
  *        000 = 0TAD, 
  *        001 = 2TAD, 
  *        010 = 4TAD,
@@ -56,7 +56,7 @@
  *        110 = 16TAD,
  *        111 = 20TAD
  *
- * @param adcs ADC Clock Select (0–7)
+ * @param adcs ADC Clock Select (0–7) (> 0.7 µs)
  *        111 = FRC (internal RC oscillator)
  *        110 = Fosc/64
  *        101 = Fosc/16
