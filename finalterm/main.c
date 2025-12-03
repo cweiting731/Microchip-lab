@@ -247,6 +247,9 @@ void main(void)
     SYSTEM_Initialize() ;
 
     TRISBbits.TRISB0 = 1; // RB0 input
+    TRISAbits.TRISA0 = 1; // AN0 input
+
+    ADC_Initialize(0b1110, 0, 0, 0b010, 0b100, 1); // AN0 analog, Vref=Vdd/Vss, 4Tad, Fosc/4, right justified
 
     TRISD = 0; // RD all output
     LATD = 0; // clear LED
