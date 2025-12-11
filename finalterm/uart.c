@@ -59,7 +59,7 @@ void ClearBuffer(){
     lenStr = 0;
 }
 
-void MyusartRead()
+char MyusartRead()
 {
     char c = RCREG;  // read received byte
 
@@ -68,7 +68,7 @@ void MyusartRead()
         uartCommandReady = true;   // command is ready!
         UART_Write('\r');
         UART_Write('\n');
-        return;
+        return c;
     }
 
     else if (c == '\b') {  // Backspace
@@ -81,7 +81,7 @@ void MyusartRead()
             UART_Write(' ');
             UART_Write('\b');
         }
-        return;
+        return c;
     }
 
     else {
@@ -92,7 +92,7 @@ void MyusartRead()
         }
     }
 
-    return ;
+    return c;
 }
 
 char *GetString(){
