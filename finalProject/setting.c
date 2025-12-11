@@ -1,7 +1,7 @@
 // CONFIG1H
 #pragma config OSC = INTIO67      // Oscillator Selection bits (HS oscillator)
 #pragma config FCMEN = OFF      // Fail-Safe Clock Monitor Enable bit (Fail-Safe Clock Monitor disabled)
-#pragma config IESO = ON       // Internal/External Oscillator Switchover bit (Oscillator Switchover mode disabled)
+#pragma config IESO = OFF       // Internal/External Oscillator Switchover bit (Oscillator Switchover mode disabled)
 
 // CONFIG2L
 #pragma config PWRT = OFF       // Power-up Timer Enable bit (PWRT disabled)
@@ -75,7 +75,7 @@ void OSCILLATOR_Initialize(void)
     // IRCF2 = 1; // default setting 4M Hz
     // IRCF1 = 1;
     // IRCF0 = 0;
-    OSCCONbits.IRCF = 0b011; // 500 kHz
+    OSCCONbits.IRCF = 0b110; // 4 MHz
 
     // 111 = 8 MHz (INTOSC drives clock directly) 
     // 110 = 4 MHz 

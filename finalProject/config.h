@@ -1,6 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define _XTAL_FREQ 500000UL // 500 kHz
+#define _XTAL_FREQ 4000000UL // 4 MHz
 
 #endif // CONFIG_H

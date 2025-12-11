@@ -106,10 +106,10 @@ void Servo_WritePulseUS(uint16_t pulse_us, uint8_t prescale)
     if (pulse_us > 2000) pulse_us = 2000;
 
     // Tosc = 1/Fosc (秒)，這裡轉成微秒
-    float Tosc_us = (1.0f / _XTAL_FREQ) * 1000000.0f; 
+    float Tosc_us = (1.0f / (float)_XTAL_FREQ) * 1000000.0f; 
 
     // duty = pulse_us / (Tosc * prescale)
-    float raw = pulse_us / (Tosc_us * prescale);
+    float raw = pulse_us / (Tosc_us * (float)prescale);
 
     uint16_t duty = (uint16_t)(raw);
     if (duty > 1023) duty = 1023;
