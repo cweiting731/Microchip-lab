@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include "timers.h"
 #include <stdint.h>
+#include "ccp2.h"
 
 bool isRunning = false;
 // [1428, 1535]
@@ -32,8 +33,10 @@ void updateLATDdigit(unsigned char digit) {
 void updateIsRunningLED(bool activated) {
     if (activated) {
         LATDbits.LATD3 = 1; // Set LATD3 high
+        LATDbits.LATD2 = 1; // Also set LATD2 high to indicate running
     } else {
         LATDbits.LATD3 = 0; // Set LATD3 low
+        LATDbits.LATD2 = 0; // Also set LATD2 low to indicate stopped
     }
 }
 
@@ -154,12 +157,14 @@ void main(void)
     LATD = 0; // clear LED
     
     CCP1_PWM_Initialize(50, 16); // 50Hz for servo
+    CCP2_PWM_Initialize(50, 16); // 50Hz for servo  
     ADC_Initialize(0b1110, 0, 0, 0b010, 0b100, 1); // AN0 analog, Vref=Vdd/Vss, 4Tad, Fosc/4, right justified
     // ADC_enableInterrupt();
     // ADC_startInterruptRead(0); // Start reading AN0
 
     // ADCON0bits.GO = 1; // Start ADC conversion
     Servo_WritePulseUS(1500, 16); // 1500us pulse to center servo
+    Servo2_WritePulseUS(1500, 16); // 1500us pulse to center servo
 
     while(1) {
         unsigned char newState = ADCmap();
@@ -186,6 +191,7 @@ void main(void)
                 updateIsRunningLED(false);
                 updateStateLED(state);
                 Servo_WritePulseUS(1500, 16); // Stop servo
+                Servo2_WritePulseUS(1500, 16); // Stop servo
                 UART_Write_Text("\r\nAuto Mode Stop\r\n");
             }
             __delay_ms(20); // Debounce
@@ -201,7 +207,9 @@ void main(void)
             if (state < 3) {
                 // 順時針
                 uint16_t pulse = stopMin - (3 - state) * 100;
+                uint16_t pulse2 = stopMax + (3 - state) * 100;
                 Servo_WritePulseUS(pulse, 16);
+                Servo2_WritePulseUS(pulse2, 16);
 
                 UART_Write_Text("Clockwise Pulse: ");
                 char buffer[10];
@@ -210,11 +218,14 @@ void main(void)
             } else if (state == 3) {
                 // 停止
                 Servo_WritePulseUS(1500, 16);
+                Servo2_WritePulseUS(1500, 16);
                 UART_Write_Text("Stop Pulse: 1500\r\n");
             } else {
                 // 逆時針
                 uint16_t pulse = stopMax + (state - 3) * 100;
+                uint16_t pulse2 = stopMin - (state - 3) * 100;
                 Servo_WritePulseUS(pulse, 16);
+                Servo2_WritePulseUS(pulse2, 16);
 
                 UART_Write_Text("Counter-Clockwise Pulse: ");
                 char buffer[10];
